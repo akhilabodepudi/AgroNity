@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% block title %}Profit / Loss Calculator{% endblock %}
+{% block content %}
+
+<h2 class="h4 mb-3">Simple Profit / Loss Calculator</h2>
+<p class="text-muted">Enter your total investment and itemized sales. The tool will compute your net result and tell you how far you are from break-even.</p>
+
+<div class="card p-4 shadow-sm">
+
+  <div class="row g-3 mb-3">
+    <div class="col-md-4">
+      <label class="form-label">Currency</label>
+      <input id="currency" class="form-control" maxlength="3" value="$" />
+      <div class="form-text">e.g., $, ₹, €</div>
+    </div>
+    <div class="col-md-8">
+      <label class="form-label">Total Investment (all costs)</label>
+      <input id="investment" type="number" step="any" class="form-control" placeholder="e.g., 1200" />
+    </div>
+  </div>
+
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <h6 class="mb-0">Sales</h6>
+    <div>
+      <button id="addRow" class="btn btn-sm btn-outline-success">Add sale</button>
+      <button id="clearRows" class="btn btn-sm btn-outline-secondary ms-2">Clear all</button>
+    </div>
+  </div>
+
+  <div class="table-responsive mb-3">
+    <table class="table align-middle">
+      <thead>
+        <tr>
+          <th style="width:35%">Item / Note</th>
+          <th style="width:15%">Qty</th>
+          <th style="width:20%">Price / Unit</th>
+          <th style="width:20%">Line Total</th>
+          <th style="width:10%"></th>
+        </tr>
+      </thead>
+      <tbody id="salesBody"></tbody>
+      <tfoot>
+        <tr>
+          <th colspan="3" class="text-end">Total Sales</th>
+          <th id="totalSales">0</th>
+          <th></th>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-md-4">
+      <div class="p-3 rounded border bg-light">
+        <div class="small text-muted">Net Result</div>
+        <div id="netResult" class="fs-5 fw-semibold">0</div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="p-3 rounded border bg-light">
+        <div class="small text-muted">Profit Margin</div>
+        <div id="profitMargin" class="fs-5 fw-semibold">—</div>
+        <div class="small text-muted">Net / Total Sales</div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="p-3 rounded border bg-light">
+        <div class="small text-muted">ROI</div>
+        <div id="roi" class="fs-5 fw-semibold">—</div>
+        <div class="small text-muted">Net / Investment</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="message" class="alert mt-3 d-none"></div>
+  <div class="small text-muted mt-2">Data is stored in your browser (local only) so you can come back to it.</div>
+</div>
+
+<script>
+(function() {
+  const currencyEl = document.getElementById('currency');
+  const invEl = document.getElementById('investment');
+  const bodyEl = document.getElementById('salesBody');
+  const totalSalesEl = document.getElementById('totalSales');
+  const netResultEl = document.getElementById('netResult');
+  const profitMarginEl = document.getElementById('profitMargin');
+  const roiEl = document.getElementById('roi');
+  const msgEl = document.getElementById('message');
+  const LS_KEY = 'agronity_pl_calc_v1';
+
+  function fmt(n){const c=currencyEl.value||'$';return isNaN(n)||!isFinite(n)?c+'0':c+(Math.round(n*100)/100).toLocaleString();}
+  function num(v){const n=parseFloat(v);return isNaN(n)?0:n;}
+
+  function row(item='',qty='',price=''){return `
+    <tr>
+      <td><input class="form-control item" value="${item}" placeholder="e.g., Tomatoes batch #1"></td>
+      <td><input class="form-control qty" type="number" step="any" value="${qty}"></td>
+      <td><input class="form-control price" type="number" step="any" value="${price}"></td>
+      <td class="line-total">0</td>
+      <td><button class="btn btn-sm btn-outline-danger remove">×</button></td>
+    </tr>`;}
+
+  function wire(tr){
+    tr.querySelectorAll('input').forEach(el=>el.addEventListener('input', calc));
+    tr.querySelector('.remove').addEventListener('click', ()=>{tr.remove();calc();});
+  }
+
+  function add(item='',q='',p=''){bodyEl.insertAdjacentHTML('beforeend', row(item,q,p));wire(bodyEl.lastElementChild);calc();}
+
+  function save(){
+    const rows=[]; bodyEl.querySelectorAll('tr').forEach(r=>{
+      rows.push({item:r.querySelector('.item').value,qty:r.querySelector('.qty').value,price:r.querySelector('.price').value});
+    });
+    localStorage.setItem(LS_KEY, JSON.stringify({currency:currencyEl.value, investment:invEl.value, rows}));
+  }
+
+  function load(){
+    const raw=localStorage.getItem(LS_KEY);
+    if(!raw){add();return;}
+    try{
+      const d=JSON.parse(raw);
+      currencyEl.value=d.currency||'$'; invEl.value=d.investment||'';
+      bodyEl.innerHTML=''; (d.rows||[]).forEach(r=>add(r.item,r.qty,r.price));
+      if((d.rows||[]).length===0) add();
+      calc();
+    }catch{ bodyEl.innerHTML=''; add(); calc(); }
+  }
+
+  function calc(){
+    let sales=0;
+    bodyEl.querySelectorAll('tr').forEach(r=>{
+      const line=num(r.querySelector('.qty').value)*num(r.querySelector('.price').value);
+      r.querySelector('.line-total').textContent=fmt(line);
+      sales+=line;
+    });
+    totalSalesEl.textContent=fmt(sales);
+    const inv=num(invEl.value), net=sales-inv;
+    netResultEl.textContent=fmt(net);
+    profitMarginEl.textContent=sales>0?((net/sales*100).toFixed(1)+'%'):'—';
+    roiEl.textContent=inv>0?((net/inv*100).toFixed(1)+'%'):'—';
+
+    msgEl.className='alert mt-3';
+    if(net>0){ msgEl.classList.add('alert-success'); msgEl.innerHTML=`<strong>Profit!</strong> You are ${fmt(net)} in the green.`; }
+    else if(net<0){ msgEl.classList.add('alert-warning'); msgEl.innerHTML=`You are just <strong>${fmt(Math.abs(net))}</strong> away to get the profit.`; }
+    else{ msgEl.classList.add('alert-info'); msgEl.textContent='You are at break-even.'; }
+    save();
+  }
+
+  document.getElementById('addRow').addEventListener('click', ()=>add());
+  document.getElementById('clearRows').addEventListener('click', ()=>{bodyEl.innerHTML=''; add(); calc();});
+  currencyEl.addEventListener('input', calc); invEl.addEventListener('input', calc);
+  load();
+})();
+</script>
+
+{% endblock %}

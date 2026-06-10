@@ -1,0 +1,1 @@
+# empty file, required so Django finds the tags package

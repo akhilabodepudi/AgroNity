@@ -1,0 +1,453 @@
+{% extends "base.html" %}
+{% block title %}Map Integration{% endblock %}
+{% block content %}
+
+<h2 class="h4 mb-3">Nearby fertilizer shops & soil test centers</h2>
+<p class="text-muted">Set a location (GPS or search) and we’ll find nearby OpenStreetMap places.</p>
+
+<div class="card p-3 mb-3">
+  <div class="row g-3 align-items-end">
+    <div class="col-md-5">
+      <label class="form-label">Search a place</label>
+      <div class="position-relative">
+        <input id="placeInput" class="form-control" placeholder="e.g., Pune, Maharashtra or Nairobi, Kenya">
+        <div id="placeResults" class="list-group position-absolute w-100" style="z-index:1000; max-height:260px; overflow:auto; display:none;"></div>
+      </div>
+      <div class="form-text">Powered by OpenStreetMap Nominatim (no key).</div>
+    </div>
+
+    <div class="col-md-3">
+      <label class="form-label">Search radius (meters)</label>
+      <input id="radius" type="number" min="200" step="200" value="3000" class="form-control">
+    </div>
+
+    <div class="col-md-4">
+      <div class="mb-2">
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="checkbox" id="chkFert" checked>
+          <label class="form-check-label" for="chkFert">Fertilizer shops</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="checkbox" id="chkSoil" checked>
+          <label class="form-check-label" for="chkSoil">Soil test centers / labs</label>
+        </div>
+      </div>
+      <button id="btnMyLoc" class="btn btn-outline-secondary btn-sm">Use my location</button>
+      <button id="btnSearch" class="btn btn-success btn-sm ms-2">Search this area</button>
+      <button id="btnKeyword" class="btn btn-outline-primary btn-sm ms-2">Keyword search (fallback)</button>
+    </div>
+  </div>
+</div>
+
+<div id="map" style="height: 520px;" class="rounded shadow-sm mb-2"></div>
+<div id="overpassStatus" class="small text-muted mb-3">Move the map, use GPS, or search a place, then click <strong>Search this area</strong>.</div>
+
+<div class="row">
+  <div class="col-md-6">
+    <div class="card p-3 h-100">
+      <h6 class="mb-2">Fertilizer shops</h6>
+      <ul id="listFert" class="list-unstyled mb-0 small"></ul>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card p-3 h-100">
+      <h6 class="mb-2">Soil testing centers</h6>
+      <ul id="listSoil" class="list-unstyled mb-0 small"></ul>
+    </div>
+  </div>
+</div>
+
+<style>
+  /* tiny chip marker for soil labs */
+  .soil-icon div {
+    background:#6f42c1;color:#fff;border-radius:50%;
+    width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:12px;
+    box-shadow:0 0 0 2px rgba(255,255,255,.8);
+  }
+  #placeResults .list-group-item { cursor:pointer; }
+</style>
+
+<script>
+(() => {
+  // --- Map base (global default view) ---
+  const map = L.map('map', { worldCopyJump: true }).setView([20, 0], 2);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(map);
+
+  // Layers
+  const fertLayer = L.layerGroup().addTo(map);
+  const soilLayer = L.layerGroup().addTo(map);
+
+  // Icons
+  const fertIcon = L.icon({
+    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+    iconSize: [25,41], iconAnchor:[12,41], popupAnchor:[1,-34],
+    shadowUrl:'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png'
+  });
+  const soilIcon = L.divIcon({ className:'soil-icon', html:'<div>S</div>', iconSize:[26,26], iconAnchor:[13,26] });
+
+  // Elements
+  const radiusEl = document.getElementById('radius');
+  const chkFert  = document.getElementById('chkFert');
+  const chkSoil  = document.getElementById('chkSoil');
+  const listFert = document.getElementById('listFert');
+  const listSoil = document.getElementById('listSoil');
+  const btnMyLoc = document.getElementById('btnMyLoc');
+  const btnSearch= document.getElementById('btnSearch');
+  const statusEl = document.getElementById('overpassStatus');
+  const placeInput = document.getElementById('placeInput');
+  const placeResults = document.getElementById('placeResults');
+
+  // Overpass mirrors (fallbacks)
+  const OVERPASS_ENDPOINTS = [
+    'https://overpass.kumi.systems/api/interpreter',
+    'https://overpass-api.de/api/interpreter',
+    'https://lz4.overpass-api.de/api/interpreter',
+    'https://overpass.openstreetmap.fr/api/interpreter',
+    'https://overpass.nchc.org.tw/api/interpreter'
+  ];
+
+  // Helpers
+  function status(msg, cls='text-muted') { statusEl.className = 'small mb-3 ' + cls; statusEl.textContent = msg; }
+  function clearResults() {
+    fertLayer.clearLayers(); soilLayer.clearLayers();
+    listFert.innerHTML = ''; listSoil.innerHTML = '';
+  }
+  function addListItem(ul, el, type) {
+    const tags = el.tags || {};
+    const name = tags.name || '(Unnamed)';
+    const addrParts = [tags['addr:housenumber'], tags['addr:street'], tags['addr:city'], tags['addr:state'], tags['addr:country']].filter(Boolean);
+    const addr = addrParts.join(', ');
+    const lat = el.lat || (el.center && el.center.lat);
+    const lon = el.lon || (el.center && el.center.lon);
+    const gmaps = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`;
+    const li = document.createElement('li');
+    li.className = 'mb-2';
+    li.innerHTML = `<strong>${name}</strong>${addr ? `<br><span class="text-muted">${addr}</span>` : ''}<br>
+      ${tags.phone ? `<span>${tags.phone}</span><br>` : ''}<a target="_blank" rel="noopener" href="${gmaps}">Directions</a>`;
+    ul.appendChild(li);
+  }
+  function fetchWithTimeout(url, options, timeoutMs=15000) {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), timeoutMs);
+    return fetch(url, { ...options, signal: ctrl.signal }).finally(() => clearTimeout(t));
+  }
+
+  // Build a bbox query using the current map rectangle (south,west,north,east).
+  function buildQueryBBox(bounds, wantFert = true, wantSoil = true) {
+    const s = bounds.getSouth(), w = bounds.getWest(), n = bounds.getNorth(), e = bounds.getEast();
+
+    // Name regexes – broadened for India/Global (fertilizer/fertiliser, agro, krishi, seeds, pesticide…)
+    const fertName = '(?i)(fertili[sz]er|agro|krishi|krushi|seeds?|pesticides?|farm\\s*supply|agri\\s*(input|store))';
+    const soilName = '(?i)(soil\\s*(test(ing)?|lab(orator(y|ies)?)?|centre|center)|agro\\s*lab|krishi\\s*lab)';
+
+    const fert = wantFert ? `
+      // clear tags
+      node["shop"="agricultural_supplies"](${s},${w},${n},${e});
+      way ["shop"="agricultural_supplies"](${s},${w},${n},${e});
+      // nearby likely sellers
+      node["shop"="garden_centre"](${s},${w},${n},${e});
+      way ["shop"="garden_centre"](${s},${w},${n},${e});
+      node["shop"="hardware"](${s},${w},${n},${e});
+      way ["shop"="hardware"](${s},${w},${n},${e});
+      // name matches
+      node["name"~"${fertName}"](${s},${w},${n},${e});
+      way ["name"~"${fertName}"](${s},${w},${n},${e});
+      relation["name"~"${fertName}"](${s},${w},${n},${e});
+    ` : '';
+
+    const soil = wantSoil ? `
+      // labs & institutes
+      node["healthcare"="laboratory"](${s},${w},${n},${e});
+      way ["healthcare"="laboratory"](${s},${w},${n},${e});
+      node["amenity"="research_institute"](${s},${w},${n},${e});
+      way ["amenity"="research_institute"](${s},${w},${n},${e});
+      // government or named matches
+      node["office"="government"]["name"~"${soilName}"](${s},${w},${n},${e});
+      way ["office"="government"]["name"~"${soilName}"](${s},${w},${n},${e});
+      // general name matches
+      node["name"~"${soilName}"](${s},${w},${n},${e});
+      way ["name"~"${soilName}"](${s},${w},${n},${e});
+      relation["name"~"${soilName}"](${s},${w},${n},${e});
+    ` : '';
+
+    // NOTE: out center for ways/relations so we can place a marker; raise cap to 1000 per tile
+    return `[out:json][timeout:30];
+      (
+        ${fert}
+        ${soil}
+      );
+      out center tags 1000;`;
+  }
+
+
+async function runOverpass(query) {
+  const qs = new URLSearchParams({ data: query }).toString();
+  let lastErr = null;
+  for (const ep of OVERPASS_ENDPOINTS) {
+    try {
+      const url = `${ep}?${qs}`;
+      const res = await fetchWithTimeout(url, { headers: { 'Accept':'application/json' } }, 20000);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return await res.json();
+    } catch (e) { lastErr = e; }
+  }
+  throw lastErr || new Error('Overpass failed');
+}
+
+async function searchHere() {
+  const bounds = map.getBounds();
+  const wantF = chkFert.checked;
+  const wantS = chkSoil.checked;
+
+  // Enforce a reasonable zoom before searching to keep tiles small
+  if (map.getZoom() < 12) {
+    status('Zoom in closer (≥ 12) for better results, then click “Search this area”.', 'text-warning');
+    return;
+  }
+
+  status('Searching this area… (tiling to avoid rate limits)', 'text-muted');
+  clearResults();
+
+  // Decide tile grid based on zoom: closer zoom → fewer tiles
+  const z = map.getZoom();
+  const grid = z >= 15 ? 1 : z >= 13 ? 2 : 3; // 1, 2 or 3 tiles per side
+  const tiles = splitBounds(bounds, grid);
+
+  let all = [];
+  for (let idx=0; idx<tiles.length; idx++) {
+    status(`Querying tile ${idx+1}/${tiles.length}…`, 'text-muted');
+    const q = buildQueryBBox(tiles[idx], wantF, wantS);
+    try {
+      const data = await runOverpass(q);
+      all = all.concat(data.elements || []);
+      // polite small delay between tiles
+      await new Promise(r => setTimeout(r, 350));
+    } catch (e) {
+      // Continue with next tile
+      console.warn('Tile failed', idx+1, e);
+    }
+  }
+
+  const elements = dedupeElements(all);
+  let countF = 0, countS = 0;
+
+  elements.forEach(el => {
+    const lat = el.lat || (el.center && el.center.lat);
+    const lon = el.lon || (el.center && el.center.lon);
+    if (!lat || !lon) return;
+
+    const tags = el.tags || {};
+    const name = tags.name || 'POI';
+    const isFert = tags.shop === 'agricultural_supplies';
+    const isSoil = tags.healthcare === 'laboratory'
+                || tags.amenity === 'research_institute'
+                || (tags.name && /soil/i.test(tags.name));
+
+    if (isFert) {
+      fertLayer.addLayer(L.marker([lat, lon], {icon: fertIcon}).bindPopup(`<strong>${name}</strong>`));
+      addListItem(listFert, el, 'fert'); countF++;
+    } else if (isSoil) {
+      soilLayer.addLayer(L.marker([lat, lon], {icon: soilIcon}).bindPopup(`<strong>${name}</strong>`));
+      addListItem(listSoil, el, 'soil'); countS++;
+    }
+  });
+
+  if (countF + countS === 0) {
+    status('No results in view. Zoom in a bit more or pan to a different area and search again.', 'text-warning');
+  } else {
+    status(`Found ${countF} fertilizer shops and ${countS} soil centers in view.`, 'text-success');
+  }
+}
+
+
+function splitBounds(bounds, grid=2) {
+  // Split into grid x grid boxes
+  const sw = bounds.getSouthWest(), ne = bounds.getNorthEast();
+  const latStep = (ne.lat - sw.lat) / grid;
+  const lngStep = (ne.lng - sw.lng) / grid;
+  const tiles = [];
+  for (let i=0;i<grid;i++) {
+    for (let j=0;j<grid;j++) {
+      const s = sw.lat + i*latStep;
+      const n = sw.lat + (i+1)*latStep;
+      const w = sw.lng + j*lngStep;
+      const e = sw.lng + (j+1)*lngStep;
+      tiles.push(L.latLngBounds(L.latLng(s,w), L.latLng(n,e)));
+    }
+  }
+  return tiles;
+}
+
+function dedupeElements(elements) {
+  const seen = new Set();
+  const out = [];
+  for (const el of elements || []) {
+    if (el && !seen.has(el.type + ':' + el.id)) {
+      seen.add(el.type + ':' + el.id);
+      out.push(el);
+    }
+  }
+  return out;
+}
+
+// Simple de-dupe by lat/lon rounded
+function dedupeByLL(items) {
+  const seen = new Set();
+  const out = [];
+  for (const it of items) {
+    const key = (Math.round(it.lat*1e5)) + ',' + (Math.round(it.lon*1e5));
+    if (!seen.has(key)) { seen.add(key); out.push(it); }
+  }
+  return out;
+}
+
+async function nominatimSearch(term, bounds, limit=30) {
+  const url = new URL('https://nominatim.openstreetmap.org/search');
+  // Restrict to current map view
+  url.searchParams.set('viewbox', `${bounds.getWest()},${bounds.getNorth()},${bounds.getEast()},${bounds.getSouth()}`);
+  url.searchParams.set('bounded', '1');
+  url.searchParams.set('q', term);
+  url.searchParams.set('format', 'json');
+  url.searchParams.set('limit', String(limit));
+  url.searchParams.set('addressdetails', '1');
+
+  const res = await fetch(url.toString(), { headers: { 'Accept':'application/json' } });
+  if (!res.ok) throw new Error('Nominatim HTTP ' + res.status);
+  return res.json();
+}
+
+async function keywordSearchFallback() {
+  const bounds = map.getBounds();
+  status('Keyword search in this area…', 'text-muted');
+  clearResults();
+
+  // Terms to try (en + common variants); feel free to extend
+  const fertTerms = [
+    'fertilizer', 'fertiliser', 'agro', 'agro shop', 'agri input',
+    'krishi', 'krushi', 'seed shop', 'pesticide shop', 'farm supply'
+  ];
+  const soilTerms = [
+    'soil testing lab', 'soil test center', 'soil laboratory',
+    'agro lab', 'krishi lab'
+  ];
+
+  const wantF = chkFert.checked;
+  const wantS = chkSoil.checked;
+
+  let hits = [];
+
+  try {
+    if (wantF) {
+      for (const t of fertTerms) {
+        const data = await nominatimSearch(t, bounds, 20);
+        hits = hits.concat(data.map(d => ({...d, _type: 'fert'})));
+        await new Promise(r => setTimeout(r, 200)); // be polite
+      }
+    }
+    if (wantS) {
+      for (const t of soilTerms) {
+        const data = await nominatimSearch(t, bounds, 20);
+        hits = hits.concat(data.map(d => ({...d, _type: 'soil'})));
+        await new Promise(r => setTimeout(r, 200));
+      }
+    }
+  } catch (e) {
+    console.error(e);
+    status('Nominatim is busy. Try again in a moment.', 'text-warning');
+    return;
+  }
+
+  const unique = dedupeByLL(hits);
+  let countF = 0, countS = 0;
+
+  unique.forEach(d => {
+    const lat = parseFloat(d.lat), lon = parseFloat(d.lon);
+    const name = d.display_name?.split(',')[0] || 'POI';
+    const gmaps = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`;
+
+    if (d._type === 'fert') {
+      fertLayer.addLayer(L.marker([lat, lon], {icon: fertIcon}).bindPopup(
+        `<strong>${name}</strong><br><small>${d.display_name || ''}</small><br><a target="_blank" href="${gmaps}">Directions</a>`
+      ));
+      const el = { lat, lon, tags:{ name: name } };
+      addListItem(listFert, el, 'fert'); countF++;
+    } else {
+      soilLayer.addLayer(L.marker([lat, lon], {icon: soilIcon}).bindPopup(
+        `<strong>${name}</strong><br><small>${d.display_name || ''}</small><br><a target="_blank" href="${gmaps}">Directions</a>`
+      ));
+      const el = { lat, lon, tags:{ name: name } };
+      addListItem(listSoil, el, 'soil'); countS++;
+    }
+  });
+
+  if (countF + countS === 0) {
+    status('No matches by keywords. Zoom in/out a bit or try another area/term.', 'text-warning');
+  } else {
+    status(`Found ${countF} fertilizer shops and ${countS} soil centers via keyword search.`, 'text-success');
+    try {
+      const all = L.featureGroup([fertLayer, soilLayer]);
+      map.fitBounds(all.getBounds().pad(0.2));
+    } catch (_) {}
+  }
+}
+
+  // --- Geolocation
+  btnMyLoc.addEventListener('click', () => {
+    if (!navigator.geolocation) { status('Geolocation not supported by this browser.', 'text-danger'); return; }
+    navigator.geolocation.getCurrentPosition(
+      p => { map.setView([p.coords.latitude, p.coords.longitude], 14); status('Centered on your location. Click “Search this area”.','text-success'); },
+      _ => status('Unable to get your location (permission denied?). Use the search box.', 'text-warning'),
+      { enableHighAccuracy:true, timeout:10000 }
+    );
+  });
+
+  // --- Place search (Nominatim)
+  let searchTimer = null;
+  placeInput.addEventListener('input', () => {
+    const q = placeInput.value.trim();
+    clearTimeout(searchTimer);
+    if (!q) { placeResults.style.display='none'; placeResults.innerHTML=''; return; }
+    searchTimer = setTimeout(async () => {
+      try {
+        const url = new URL('https://nominatim.openstreetmap.org/search');
+        url.searchParams.set('q', q);
+        url.searchParams.set('format', 'json');
+        url.searchParams.set('addressdetails', '1');
+        url.searchParams.set('limit', '8');
+        const res = await fetch(url.toString(), { headers: { 'Accept':'application/json' }});
+        const data = await res.json();
+        placeResults.innerHTML = '';
+        data.forEach(item => {
+          const li = document.createElement('a');
+          li.className = 'list-group-item list-group-item-action';
+          li.textContent = item.display_name;
+          li.addEventListener('click', () => {
+            placeInput.value = item.display_name;
+            placeResults.style.display='none';
+            map.setView([+item.lat, +item.lon], 14);
+            status('Moved to selected place. Click “Search this area”.', 'text-success');
+          });
+          placeResults.appendChild(li);
+        });
+        placeResults.style.display = data.length ? 'block' : 'none';
+      } catch (e) {
+        placeResults.style.display='none';
+      }
+    }, 350); // debounce
+  });
+  document.addEventListener('click', (e) => { if (!placeResults.contains(e.target) && e.target !== placeInput) placeResults.style.display='none'; });
+  document.getElementById('btnKeyword').addEventListener('click', keywordSearchFallback);
+
+  // --- Search triggers
+  btnSearch.addEventListener('click', searchHere);
+  // Optional: auto-suggest search on first move
+  map.on('moveend', () => status('Map moved. Click “Search this area” to update.', 'text-muted'));
+
+  // Initial hint
+  status('Tip: Use GPS or the place search, then click “Search this area”.');
+})();
+</script>
+
+{% endblock %}

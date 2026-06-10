@@ -1,0 +1,36 @@
+:root{
+    --agro-1:#2e7d32;
+    --agro-2:#66bb6a;
+    --agro-3:#a5d6a7;
+  }
+  .bg-agro{
+    background: linear-gradient(180deg, #e8f5e9 0%, #f5fff6 100%);
+    min-height: 100vh;
+  }
+  .agro-nav{
+    background: linear-gradient(90deg, var(--agro-1), var(--agro-2));
+  }
+  .btn-agro{
+    background: var(--agro-2);
+    border: none;
+    color: #0b2e13;
+  }
+  .btn-agro:hover{ filter: brightness(0.95); }
+  .btn-outline-agro{
+    color: var(--agro-1);
+    border: 1px solid var(--agro-1);
+  }
+  .btn-outline-agro:hover{
+    background: var(--agro-3);
+    color: #0b2e13;
+  }
+  .hero-card .hero-img{
+    height: 220px;
+    background-image: url('/static/img/hero.jpg'); /* put your image here */
+    background-size: cover;
+    background-position: center;
+    border-top-left-radius: .5rem;
+    border-top-right-radius: .5rem;
+  }
+  .link-card:hover { transform: translateY(-2px); transition: .2s; }
+  

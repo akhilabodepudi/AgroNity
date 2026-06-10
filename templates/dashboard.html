@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<h2 class="h4 mb-3">Dashboard</h2>
+<p class="text-muted">Jump to a sub-application:</p>
+
+<div class="row g-3">
+  <div class="col-md-6 col-lg-3">
+    <a href="/recommendation/" class="card link-card shadow-sm text-decoration-none">
+      <div class="card-body">
+        <h3 class="h5">Crop Recommendation</h3>
+        <p class="small text-muted">Soil pollution-based suggestions</p>
+      </div>
+    </a>
+  </div>
+  <div class="col-md-6 col-lg-3">
+    <a href="/maps/" class="card link-card shadow-sm text-decoration-none">
+      <div class="card-body">
+        <h3 class="h5">Map Integration</h3>
+        <p class="small text-muted">Nearby fertilizer shops & soil centers</p>
+      </div>
+    </a>
+  </div>
+  <div class="col-md-6 col-lg-3">
+    <a href="/learning/" class="card link-card shadow-sm text-decoration-none">
+      <div class="card-body">
+        <h3 class="h5">Learning Hub</h3>
+        <p class="small text-muted">YouTube tutorials & crop guides</p>
+      </div>
+    </a>
+  </div>
+  <div class="col-md-6 col-lg-3">
+    <a href="/profit-loss/" class="card link-card shadow-sm text-decoration-none">
+      <div class="card-body">
+        <h3 class="h5">Profit/Loss</h3>
+        <p class="small text-muted">Investments vs sales</p>
+      </div>
+    </a>
+  </div>
+</div>
+
+<hr class="my-4">
+
+<h3 class="h5">Quick links</h3>
+<a class="btn btn-agro me-2" href="/market/">Open Market</a>
+<a class="btn btn-outline-agro" href="/cart/">Open Cart</a>
+{% endblock %}

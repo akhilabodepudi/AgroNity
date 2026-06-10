@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% load form_extras %}
+{% block title %}Sign in{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-5 col-lg-4">
+    <div class="card shadow border-0">
+      <div class="card-body p-4">
+        <h1 class="h4 mb-3">Sign in to AgroNity</h1>
+        <form method="post" novalidate>
+          {% csrf_token %}
+          <div class="mb-3">
+            <label class="form-label">Email or Username</label>
+            {{ form.username|add_class:"form-control" }}
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Password</label>
+            {{ form.password|add_class:"form-control" }}
+          </div>
+          <button class="btn btn-agro w-100">Sign in</button>
+          <div class="text-center mt-3">
+            New here? <a href="{% url 'signup' %}">Create an account</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

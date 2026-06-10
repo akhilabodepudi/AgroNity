@@ -1,0 +1,4 @@
+AgroNity — Smart Agriculture Platform
+
+Django-based digital farming platform with marketplace, ML crop
+recommendation, agri-service maps, learning hub, and profit/loss tools.

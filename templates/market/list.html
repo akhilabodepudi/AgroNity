@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Market{% endblock %}
+{% block content %}
+
+<h2 class="h4 mb-3">Open Market</h2>
+<p class="text-muted">Browse crops available on AgroNity. {% if not request.user.is_authenticated %}You’re viewing as a guest — <a href="{% url 'login' %}">log in</a> to add items to your cart.{% endif %}</p>
+
+{% if crops %}
+  <div class="row g-3">
+    {% for c in crops %}
+      <div class="col-sm-6 col-md-4 col-lg-3">
+        <div class="card h-100 shadow-sm">
+          {% if c.image %}
+            <img src="{{ c.image.url }}" class="card-img-top" alt="{{ c.name }}">
+          {% else %}
+            <img src="{% static 'img/placeholder_crop.jpg' %}" class="card-img-top" alt="{{ c.name }}">
+          {% endif %}
+          <div class="card-body d-flex flex-column">
+            <h5 class="card-title mb-1">{{ c.name }}</h5>
+            <div class="text-muted small mb-2">
+              Qty: {{ c.quantity }} {{ c.unit }}{% if c.quality %} • Quality: {{ c.quality }}{% endif %}
+            </div>
+            {% if c.description %}
+              <p class="card-text small flex-grow-1">{{ c.description|truncatewords:20 }}</p>
+            {% else %}
+              <div class="flex-grow-1"></div>
+            {% endif %}
+
+            <div class="d-flex align-items-center justify-content-between mt-2">
+              <strong>₹{{ c.price }}</strong>
+
+              {% if request.user.is_authenticated %}
+                <form action="{% url 'add_to_cart' c.id %}" method="post" class="d-inline">
+                  {% csrf_token %}
+                  <input type="hidden" name="quantity" value="1">
+                  <button class="btn btn-success btn-sm" type="submit">Add to cart</button>
+                </form>
+              {% else %}
+                <a class="btn btn-outline-secondary btn-sm disabled" tabindex="-1"
+                   role="button" aria-disabled="true"
+                   title="Log in to add to cart">Add to cart</a>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="alert alert-info">No crops listed yet.</div>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Crop Recommendation{% endblock %}
+{% block content %}
+
+<h2 class="h4 mb-3">Soil Pollution-based Crop Recommendation</h2>
+<p class="text-muted">Enter your soil and weather parameters to get the best crop recommendation.</p>
+
+<div class="card p-4 shadow-sm">
+  <form id="recommendForm" class="row g-3">
+    <div class="col-md-4">
+      <label class="form-label">Nitrogen (N)</label>
+      <input type="number" step="any" name="N" class="form-control" required>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Phosphorus (P)</label>
+      <input type="number" step="any" name="P" class="form-control" required>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Potassium (K)</label>
+      <input type="number" step="any" name="K" class="form-control" required>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Temperature (°C)</label>
+      <input type="number" step="any" name="temperature" class="form-control" required>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Humidity (%)</label>
+      <input type="number" step="any" name="humidity" class="form-control" required>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">pH Value</label>
+      <input type="number" step="any" name="ph" class="form-control" required>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Rainfall (mm)</label>
+      <input type="number" step="any" name="rainfall" class="form-control" required>
+    </div>
+  </form>
+
+  <button class="btn btn-agro mt-3" id="findCropBtn">Find Crop</button>
+
+  <div id="result" class="alert alert-info mt-3 d-none"></div>
+</div>
+
+<script>
+document.getElementById("findCropBtn").addEventListener("click", function() {
+  const form = document.getElementById("recommendForm");
+  const params = new URLSearchParams(new FormData(form)).toString();
+  fetch(`/api/recommend-crop/?${params}`)
+    .then(res => res.json())
+    .then(data => {
+      const resultDiv = document.getElementById("result");
+      resultDiv.classList.remove("d-none");
+      if (data.recommended_crop) {
+        resultDiv.className = "alert alert-success mt-3";
+        resultDiv.innerHTML = `<strong>Recommended Crop:</strong> ${data.recommended_crop}`;
+      } else {
+        resultDiv.className = "alert alert-danger mt-3";
+        resultDiv.innerHTML = `Error: ${data.error}`;
+      }
+    })
+    .catch(err => {
+      alert("Error contacting API: " + err);
+    });
+});
+</script>
+
+{% endblock %}

@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Cart{% endblock %}
+{% block content %}
+<h2 class="h4 mb-3">Your Cart</h2>
+{% if items %}
+  <div class="table-responsive">
+    <table class="table align-middle">
+      <thead><tr><th>Item</th><th>Qty</th><th>Price</th><th>Subtotal</th></tr></thead>
+      <!-- <tbody>
+        {% for i in items %}
+          <tr>
+            <td>{{ i.crop.name }}</td>
+            <td>{{ i.quantity }}</td>
+            <td>${{ i.crop.price }}</td>
+            <td>{% widthratio i.quantity 1 i.crop.price %}</td>
+          </tr>
+        {% endfor %}
+      </tbody> -->
+      <tbody>
+        {% for i in items %}
+        <tr>
+          <td>{{ i.crop.name }}</td>
+          <td>{{ i.quantity }}</td>
+          <td>{{ i.crop.price }}</td>
+          <td>{% widthratio i.quantity 1 i.crop.price %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>      
+    </table>
+  </div>
+  <div class="d-flex justify-content-between">
+    <div class="fw-bold">Total: ${{ subtotal }}</div>
+    <a href="/checkout/" class="btn btn-agro">Proceed to Payment</a>
+  </div>
+{% else %}
+  <p>Your cart is empty.</p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Payment{% endblock %}
+{% block content %}
+<h2 class="h4 mb-3">Payment (Demo)</h2>
+<p class="text-muted">Payment methods are shown for demo only.</p>
+<ul class="list-group mb-3">
+  {% for m in payment_methods %}
+    <li class="list-group-item">{{ m }}</li>
+  {% endfor %}
+</ul>
+<div class="alert alert-info">Total to pay: <strong>${{ subtotal }}</strong></div>
+<button class="btn btn-agro" disabled>Pay (Disabled for demo)</button>
+{% endblock %}

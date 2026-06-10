@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Home{% endblock %}
+{% block content %}
+<div class="row align-items-center g-4">
+  <div class="col-lg-6">
+    <h1 class="display-6 fw-bold">Grow smarter with AgroNity</h1>
+    <p class="text-muted">
+      One platform for e-commerce, soil-based crop recommendations, nearby agri services,
+      learning hub, and profit/loss insights.
+    </p>
+    <a href="/dashboard/" class="btn btn-agro me-2">Open Dashboard</a>
+    <a href="/market/" class="btn btn-outline-agro">Browse Market</a>
+  </div>
+  <div class="col-lg-6">
+    <div class="hero-card shadow">
+      <!-- Use any local image later: /static/img/hero.jpg -->
+      <div class="hero-img"></div>
+      <div class="p-3">
+        <strong>AgroNity</strong> unites farmers, buyers, and knowledge into one ecosystem.
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
