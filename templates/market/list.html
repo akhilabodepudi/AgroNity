@@ -3,7 +3,12 @@
 {% block title %}Market{% endblock %}
 {% block content %}
 
-<h2 class="h4 mb-3">Open Market</h2>
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2 class="h4 mb-0">Open Market</h2>
+  {% if can_add %}
+    <a href="{% url 'add_crop' %}" class="btn btn-agro btn-sm">+ Add crop</a>
+  {% endif %}
+</div>
 <p class="text-muted">Browse crops available on AgroNity. {% if not request.user.is_authenticated %}You’re viewing as a guest — <a href="{% url 'login' %}">log in</a> to add items to your cart.{% endif %}</p>
 
 {% if crops %}
@@ -13,6 +18,8 @@
         <div class="card h-100 shadow-sm">
           {% if c.image %}
             <img src="{{ c.image.url }}" class="card-img-top" alt="{{ c.name }}">
+          {% elif c.image_url %}
+            <img src="{{ c.image_url }}" class="card-img-top" alt="{{ c.name }}">
           {% else %}
             <img src="{% static 'img/placeholder_crop.jpg' %}" class="card-img-top" alt="{{ c.name }}">
           {% endif %}

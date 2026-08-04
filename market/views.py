@@ -2,10 +2,19 @@
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.contrib import messages
 from django.views.decorators.http import require_POST
 from django.http import JsonResponse
 
 from .models import Crop, CartItem
+from .forms import CropForm
+
+
+def _can_manage_crops(user):
+    """Farmers, admins, and staff/superusers may list crops."""
+    return user.is_authenticated and (
+        user.is_staff or getattr(user, 'role', None) in ('farmer', 'admin')
+    )
 
 import joblib
 import numpy as np
@@ -66,7 +75,31 @@ def profit_loss(request):
 
 def market_list(request):
     crops = Crop.objects.order_by('-created_at')[:20]
-    return render(request, 'market/list.html', {'crops': crops})
+    return render(request, 'market/list.html', {
+        'crops': crops,
+        'can_add': _can_manage_crops(request.user),
+    })
+
+
+@login_required(login_url='login')
+def add_crop(request):
+    """Let a logged-in farmer/admin list a new crop on the market."""
+    if not _can_manage_crops(request.user):
+        messages.error(request, "Only farmers can add crops to the market.")
+        return redirect('market')
+
+    if request.method == 'POST':
+        form = CropForm(request.POST)
+        if form.is_valid():
+            crop = form.save(commit=False)
+            crop.farmer = request.user
+            crop.save()
+            messages.success(request, f"'{crop.name}' has been listed on the market.")
+            return redirect('market')
+    else:
+        form = CropForm()
+
+    return render(request, 'market/add_crop.html', {'form': form})
 
 
 @require_POST

@@ -43,5 +43,8 @@
 
 <h3 class="h5">Quick links</h3>
 <a class="btn btn-agro me-2" href="/market/">Open Market</a>
-<a class="btn btn-outline-agro" href="/cart/">Open Cart</a>
+<a class="btn btn-outline-agro me-2" href="/cart/">Open Cart</a>
+{% if user.is_staff or user.role == 'farmer' or user.role == 'admin' %}
+  <a class="btn btn-outline-agro" href="{% url 'add_crop' %}">+ Add crop</a>
+{% endif %}
 {% endblock %}
