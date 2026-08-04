@@ -16,6 +16,13 @@ def _can_manage_crops(user):
         user.is_staff or getattr(user, 'role', None) in ('farmer', 'admin')
     )
 
+
+def _can_edit_crop(user, crop):
+    """The crop's owner (or an admin/staff) may edit it."""
+    return user.is_authenticated and (
+        user == crop.farmer or user.is_staff or getattr(user, 'role', None) == 'admin'
+    )
+
 import joblib
 import numpy as np
 
@@ -102,16 +109,45 @@ def add_crop(request):
     return render(request, 'market/add_crop.html', {'form': form})
 
 
+@login_required(login_url='login')
+def edit_crop(request, crop_id):
+    """Let the crop's owner (or an admin) update an existing listing."""
+    crop = get_object_or_404(Crop, id=crop_id)
+    if not _can_edit_crop(request.user, crop):
+        messages.error(request, "You can only edit crops you listed.")
+        return redirect('market')
+
+    if request.method == 'POST':
+        form = CropForm(request.POST, instance=crop)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"'{crop.name}' has been updated.")
+            return redirect('market')
+    else:
+        form = CropForm(instance=crop)
+
+    return render(request, 'market/add_crop.html', {
+        'form': form,
+        'heading': 'Edit crop',
+        'subtitle': 'Update the details of your listing.',
+        'submit_label': 'Save changes',
+    })
+
+
 @require_POST
 @login_required(login_url='login')  # change 'login' if your URL name is different
 def add_to_cart(request, crop_id):
     crop = get_object_or_404(Crop, id=crop_id)
     qty = int(request.POST.get('quantity', 1))
 
-    # each user has their own cart items
-    item, _created = CartItem.objects.get_or_create(user=request.user, crop=crop)
-    item.quantity = item.quantity + qty
-    item.save()
+    # each user has their own cart items. Start a new item at the requested
+    # quantity; only add to the existing quantity for repeat adds.
+    item, created = CartItem.objects.get_or_create(
+        user=request.user, crop=crop, defaults={'quantity': qty}
+    )
+    if not created:
+        item.quantity += qty
+        item.save()
 
     return redirect('cart')
 

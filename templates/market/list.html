@@ -35,19 +35,25 @@
             {% endif %}
 
             <div class="d-flex align-items-center justify-content-between mt-2">
-              <strong>₹{{ c.price }}</strong>
+              <strong>${{ c.price }}</strong>
 
-              {% if request.user.is_authenticated %}
-                <form action="{% url 'add_to_cart' c.id %}" method="post" class="d-inline">
-                  {% csrf_token %}
-                  <input type="hidden" name="quantity" value="1">
-                  <button class="btn btn-success btn-sm" type="submit">Add to cart</button>
-                </form>
-              {% else %}
-                <a class="btn btn-outline-secondary btn-sm disabled" tabindex="-1"
-                   role="button" aria-disabled="true"
-                   title="Log in to add to cart">Add to cart</a>
-              {% endif %}
+              <div class="d-flex gap-1">
+                {% if request.user == c.farmer or request.user.is_staff or request.user.role == 'admin' %}
+                  <a href="{% url 'edit_crop' c.id %}" class="btn btn-outline-agro btn-sm">Edit</a>
+                {% endif %}
+
+                {% if request.user.is_authenticated %}
+                  <form action="{% url 'add_to_cart' c.id %}" method="post" class="d-inline">
+                    {% csrf_token %}
+                    <input type="hidden" name="quantity" value="1">
+                    <button class="btn btn-success btn-sm" type="submit">Add to cart</button>
+                  </form>
+                {% else %}
+                  <a class="btn btn-outline-secondary btn-sm disabled" tabindex="-1"
+                     role="button" aria-disabled="true"
+                     title="Log in to add to cart">Add to cart</a>
+                {% endif %}
+              </div>
             </div>
           </div>
         </div>

@@ -5,8 +5,8 @@
   <div class="col-lg-8">
     <div class="card shadow-sm">
       <div class="card-body">
-        <h2 class="h4 mb-1">List a crop on the market</h2>
-        <p class="text-muted small mb-4">Add your produce so customers can browse and order it.</p>
+        <h2 class="h4 mb-1">{{ heading|default:"List a crop on the market" }}</h2>
+        <p class="text-muted small mb-4">{{ subtitle|default:"Add your produce so customers can browse and order it." }}</p>
 
         <form method="post" novalidate>
           {% csrf_token %}
@@ -29,7 +29,7 @@
             permanently on the hosted site.
           </div>
 
-          <button type="submit" class="btn btn-agro">Add crop</button>
+          <button type="submit" class="btn btn-agro">{{ submit_label|default:"Add crop" }}</button>
           <a href="{% url 'market' %}" class="btn btn-outline-agro">Cancel</a>
         </form>
       </div>

@@ -21,8 +21,8 @@
         <tr>
           <td>{{ i.crop.name }}</td>
           <td>{{ i.quantity }}</td>
-          <td>{{ i.crop.price }}</td>
-          <td>{% widthratio i.quantity 1 i.crop.price %}</td>
+          <td>${{ i.crop.price }}</td>
+          <td>${% widthratio i.quantity 1 i.crop.price %}</td>
         </tr>
         {% endfor %}
       </tbody>      

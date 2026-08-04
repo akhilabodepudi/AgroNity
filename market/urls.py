@@ -9,6 +9,7 @@ urlpatterns = [
     path('cart/', views.cart_view, name='cart'),
     path('checkout/', views.checkout, name='checkout'),
     path('crops/add/', views.add_crop, name='add_crop'),
+    path('crops/<int:crop_id>/edit/', views.edit_crop, name='edit_crop'),
     path('add/<int:crop_id>/', views.add_to_cart, name='add_to_cart'),
 
     path('recommendation/', views.recommendation, name='recommendation'),
