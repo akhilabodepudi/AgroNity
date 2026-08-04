@@ -132,19 +132,19 @@ USE_TZ = True
 # ---------------------------------------------------------------------------
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
-# collectstatic output. Nested under staticfiles_build/static so Vercel can
-# serve it from the CDN (see vercel.json) while WhiteNoise serves it in the app.
-STATIC_ROOT = BASE_DIR / 'staticfiles_build' / 'static'
+# Vercel runs `collectstatic` automatically during the build when STATIC_ROOT
+# is set, then serves the collected files from its CDN. WhiteNoise serves them
+# for local `runserver` / `vercel dev`.
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 STORAGES = {
     'default': {
         'BACKEND': 'django.core.files.storage.FileSystemStorage',
     },
     'staticfiles': {
-        # Compressed (non-manifest) WhiteNoise storage. Non-manifest keeps
-        # {% static %} working on Vercel's serverless runtime, where the
-        # collectstatic manifest lives in the separate static build.
-        'BACKEND': 'whitenoise.storage.CompressedStaticFilesStorage',
+        # Compressed + hashed WhiteNoise storage (supported by Vercel's Django
+        # runtime). Serves cache-busted, pre-compressed static assets.
+        'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
     },
 }
 
