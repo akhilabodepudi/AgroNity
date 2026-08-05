@@ -1,8 +1,21 @@
 # 🌱 AgroNity — Smart Agriculture Platform
 
-AgroNity is a Django-based **digital farming platform** that brings e‑commerce, a soil‑based
-crop recommendation engine, nearby agri‑service maps, a learning hub, and a profit/loss
-calculator together into a single ecosystem for **farmers, customers, and administrators**.
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-agro--nity.vercel.app-2e7d32?style=for-the-badge&logo=vercel)](https://agro-nity.vercel.app)
+[![Python](https://img.shields.io/badge/Python-3.12-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+[![Django](https://img.shields.io/badge/Django-5.2-092E20?style=for-the-badge&logo=django&logoColor=white)](https://www.djangoproject.com/)
+[![XGBoost](https://img.shields.io/badge/XGBoost-ML%20Engine-FF6600?style=for-the-badge)](https://xgboost.readthedocs.io/)
+[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-000000?style=for-the-badge&logo=vercel)](https://agro-nity.vercel.app)
+[![Database](https://img.shields.io/badge/Database-Neon%20PostgreSQL-00E599?style=for-the-badge&logo=postgresql&logoColor=white)](https://neon.tech)
+
+**Live site:** [https://agro-nity.vercel.app](https://agro-nity.vercel.app)
+
+AgroNity is a **full-stack Python web application with machine learning** that unifies digital farming tools into one platform. It connects **farmers, customers, and administrators** through:
+
+- a crop marketplace (list, edit, cart, checkout)
+- an **XGBoost**-powered soil-based crop recommendation engine
+- nearby agri-service maps
+- a learning hub
+- a profit/loss calculator
 
 The goal is to **empower farmers with technology** — not just build another grocery app.
 
@@ -14,19 +27,156 @@ The goal is to **empower farmers with technology** — not just build another gr
 
 ## Table of Contents
 
-- [Features](#-features )
-- [Tech Stack](#-tech-stack)
+- [About the Project](#-about-the-project)
+- [Live Deployment & Performance](#-live-deployment--performance)
+- [Full-Stack Python + ML Tech Stack](#-full-stack-python--ml-tech-stack)
+- [Features](#-features)
+- [Machine Learning Pipeline](#-machine-learning-pipeline)
+- [Architecture](#-architecture)
 - [Screenshots](#-screenshots)
-  - [Public Pages](#public-pages)
-  - [Authentication](#authentication)
-  - [Dashboard & Sub-Applications](#dashboard--sub-applications)
-  - [Marketplace](#marketplace)
-  - [Admin Panel](#admin-panel)
-- [Getting Started](#-getting-started)
+- [Getting Started (Local)](#-getting-started-local)
 - [Project Structure](#-project-structure)
 - [User Roles](#-user-roles)
+- [Environment Variables](#-environment-variables)
 - [Roadmap](#-roadmap)
 - [References & Inspiration](#-references--inspiration)
+
+---
+
+## 📖 About the Project
+
+AgroNity is built as a **full-stack Python + Machine Learning** system for smart agriculture.
+
+### What it solves
+Farmers often lack one place to:
+1. sell produce online
+2. decide **which crop to grow** from soil and weather data
+3. find nearby fertilizer shops and soil-testing centers
+4. learn modern farming practices
+5. estimate profit vs investment
+
+AgroNity brings all of these into a single Django application with a trained ML model in production.
+
+### Who it is for
+| Role | What they can do |
+| --- | --- |
+| **Farmer** | Sign up (admin-approved), list/edit crops, use ML recommendation, maps, learning hub, profit/loss tools |
+| **Customer** | Sign up (auto-approved), browse market, add to cart, checkout (demo payment) |
+| **Administrator** | Approve farmers, manage users/crops/orders via Django admin |
+
+### Key product capabilities
+- Role-based authentication and approval workflow
+- Marketplace with **add / edit crop** (owner-only edit)
+- Shopping cart and demo checkout (USD)
+- Soil-parameter crop recommendation via a pickled **XGBoost** model
+- Leaflet + OpenStreetMap location search
+- Learning hub with embedded tutorials
+- Profit/loss calculator (margin & ROI)
+- Production deployment on **Vercel** with **Neon PostgreSQL**
+
+---
+
+## 🚀 Live Deployment & Performance
+
+| Metric | Value |
+| --- | --- |
+| **Live URL** | [https://agro-nity.vercel.app](https://agro-nity.vercel.app) |
+| **Hosting** | Vercel (serverless Python / Fluid compute) |
+| **Production status** | Ready (public) |
+| **Typical build duration** | ~1 min 39 sec |
+| **Runtime** | Python 3.12 |
+| **Framework** | Django 5.2 (WSGI) |
+| **Database** | Neon serverless PostgreSQL (AWS US East 2 / Ohio) |
+| **Static assets** | WhiteNoise + Vercel CDN (`collectstatic` on deploy) |
+| **Deploy pipeline** | GitHub `main` → Vercel auto-deploy → `build.py` (`collectstatic` + `migrate`) |
+| **Auth / sessions** | PostgreSQL-backed (production-safe; not SQLite) |
+| **Public visibility** | Fully public at `agro-nity.vercel.app` |
+
+### Why this deployment stack
+- **Vercel** serves the Django app as a serverless function and static files from the CDN.
+- **Neon Postgres** solves Vercel’s read-only filesystem problem (SQLite cannot persist sessions/data there).
+- **WhiteNoise** + Django `STATIC_ROOT` keep the green AgroNity CSS/images working in production.
+- **Automatic migrations** on every deploy keep the schema in sync without manual `migrate` steps after setup.
+
+### Local vs production
+| Concern | Local | Production (Vercel) |
+| --- | --- | --- |
+| Database | SQLite (`db.sqlite3`) | Neon PostgreSQL via `DATABASE_URL` |
+| Debug | `DEBUG=True` by default | `DJANGO_DEBUG=False` |
+| Static files | Django / WhiteNoise | WhiteNoise + Vercel CDN |
+| Media uploads | Local `MEDIA_ROOT` | Prefer image URLs (filesystem is ephemeral) |
+
+---
+
+## 🧰 Full-Stack Python + ML Tech Stack
+
+AgroNity is intentionally built as a **Full Stack Python with Machine Learning** project. Every major layer uses Python or Python-friendly tools.
+
+### 1) Backend (Python / Django)
+| Technology | Role in AgroNity |
+| --- | --- |
+| **Python 3.12** | Core language for app logic, ML inference, and tooling |
+| **Django 5.2** | Full-stack web framework (MVT): routing, ORM, auth, admin, templates |
+| **Django custom User model** | Farmer / Customer / Admin roles + approval flags |
+| **Django sessions & auth** | Secure login, logout, cart ownership |
+| **Django Forms / ModelForms** | Sign up, login, add/edit crop |
+| **Django Admin** | Approve users, manage crops, cart items, orders |
+| **WhiteNoise** | Production static file serving (CSS, images) |
+| **dj-database-url** | Parse `DATABASE_URL` for production Postgres |
+| **psycopg (binary)** | PostgreSQL driver for Django |
+| **Pillow** | Image handling / placeholders |
+
+### 2) Frontend
+| Technology | Role in AgroNity |
+| --- | --- |
+| **Django Templates** | Server-rendered UI (`base.html`, market, dashboard, auth) |
+| **HTML5 / CSS3** | Structure and custom green AgroNity theme (`theme.css`) |
+| **Bootstrap 5** | Responsive layout and components |
+| **Leaflet.js** | Interactive maps |
+| **OpenStreetMap + Nominatim** | Map tiles and place search |
+
+### 3) Machine Learning stack (Python)
+| Technology | Role in AgroNity |
+| --- | --- |
+| **XGBoost** | Primary crop-recommendation classifier (production model: `ml_model/xgboost.pkl`) |
+| **scikit-learn** | Train/test split, metrics, alternative classifiers used during model comparison |
+| **NumPy** | Feature arrays for model inference |
+| **SciPy** | Scientific computing dependency of the ML stack |
+| **joblib / pickle** | Serialize and load the trained model at runtime |
+| **pandas** *(training / analysis)* | Dataset exploration in the companion ML notebook/repo |
+| **Matplotlib / Seaborn** *(training / analysis)* | Accuracy comparison charts during model evaluation |
+
+**ML input features:** `N`, `P`, `K`, `temperature`, `humidity`, `ph`, `rainfall`  
+**ML output:** one of 22 crop labels (rice, maize, mango, coffee, …)
+
+**Models evaluated during development** (companion soil-based crop recommendation work):
+
+| Model | Approx. test accuracy |
+| --- | :---: |
+| **XGBoost** | **99.55%** |
+| Gaussian Naive Bayes | 99.09% |
+| Random Forest | 99.09% |
+| SVM | 97.95% |
+| Logistic Regression | 95.23% |
+| Decision Tree | 90.00% |
+
+### 4) Data & storage
+| Technology | Role in AgroNity |
+| --- | --- |
+| **SQLite** | Fast local development database |
+| **Neon PostgreSQL** | Production database (users, crops, carts, sessions, orders) |
+| **Django ORM** | Database-agnostic models and migrations |
+
+### 5) DevOps / deployment
+| Technology | Role in AgroNity |
+| --- | --- |
+| **Git + GitHub** | Source control (`akhilabodepudi/AgroNity`) |
+| **Vercel** | CI/CD + serverless hosting |
+| **vercel.json + build.py** | Function config + deploy-time `collectstatic` / `migrate` |
+| **Environment variables** | Secrets (`DJANGO_SECRET_KEY`, `DATABASE_URL`, etc.) |
+
+### Full-stack summary (interview / resume style)
+> **Full Stack Python with ML:** Django 5 backend, Django Templates + Bootstrap frontend, PostgreSQL (Neon) in production / SQLite locally, XGBoost + scikit-learn + NumPy/SciPy for soil-based crop recommendation, WhiteNoise + Vercel CDN for static assets, deployed as a public serverless app on Vercel.
 
 ---
 
@@ -34,176 +184,38 @@ The goal is to **empower farmers with technology** — not just build another gr
 
 | Module | Description |
 | --- | --- |
-| 🛒 **Marketplace** | Farmers list crops with price, quantity, quality & images. Customers browse, add to cart, and check out. |
-| 🤖 **Crop Recommendation** | An **XGBoost** model suggests the best crop from soil & weather inputs (N, P, K, temperature, humidity, pH, rainfall). |
-| 🗺️ **Map Integration** | Find nearby fertilizer shops and soil‑testing centers using OpenStreetMap (Leaflet + Nominatim). |
-| 🎓 **Learning Hub** | Curated YouTube tutorials and guides on modern & organic farming practices. |
-| 📊 **Profit / Loss Calculator** | Compute net result, profit margin, and ROI from investments and itemized sales. |
-| 👥 **Role-Based Accounts** | Custom user model with Farmer, Customer, and Administrator roles (farmers/admins require approval). |
-| 🔧 **Admin Panel** | Manage users, crops, cart items, and orders through Django admin. |
+| 🛒 **Marketplace** | Farmers list and **edit** their own crops (name, price, qty, quality, health, image URL). Customers browse, add to cart, and check out. Currency: **USD ($)**. |
+| 🤖 **Crop Recommendation** | XGBoost model recommends the best crop from soil & weather inputs. |
+| 🗺️ **Map Integration** | Nearby fertilizer shops and soil-testing centers (Leaflet + OSM). |
+| 🎓 **Learning Hub** | Curated farming tutorials and guides. |
+| 📊 **Profit / Loss Calculator** | Net result, profit margin, and ROI. |
+| 👥 **Role-Based Accounts** | Farmer / Customer / Admin with approval workflow for farmers & admins. |
+| 🔧 **Admin Panel** | Approve pending users, manage crops, carts, and orders. |
 
 ---
 
-## 🧰 Tech Stack
+## 🧠 Machine Learning Pipeline
 
-- **Backend:** Python 3.11, Django 5.2
-- **Machine Learning:** XGBoost, scikit‑learn, NumPy, SciPy, joblib
-- **Frontend:** Django Templates, HTML, CSS
-- **Maps:** Leaflet.js + OpenStreetMap Nominatim
-- **Database:** SQLite (development)
-- **Version Control:** Git & GitHub
-
----
-
-## 📸 Screenshots
-
-### Public Pages
-
-**Home** — landing page with quick access to the dashboard and marketplace.
-
-![Home](docs/screenshots/01-home.png)
-
-### Authentication
-
-| Sign In | Sign Up |
-| --- | --- |
-| ![Sign in](docs/screenshots/02-sign-in.png) | ![Sign up](docs/screenshots/03-sign-up.png) |
-
-After logging in, the navigation greets the user and exposes role‑based actions.
-
-![Home logged in](docs/screenshots/04-home-logged-in.png)
-
-### Dashboard & Sub-Applications
-
-The **Dashboard** is the launchpad to every sub‑application.
-
-![Dashboard](docs/screenshots/05-dashboard.png)
-
-**Soil Pollution–based Crop Recommendation** — enter soil & weather parameters to get an
-ML‑powered crop suggestion.
-
-![Crop Recommendation](docs/screenshots/06-crop-recommendation.png)
-
-**Map Integration** — locate nearby fertilizer shops and soil test centers.
-
-![Map Integration](docs/screenshots/07-map-integration.png)
-
-**Learning Hub** — embedded farming tutorials.
-
-![Learning Hub](docs/screenshots/08-learning-hub.png)
-
-**Profit / Loss Calculator** — net result, profit margin, and ROI at a glance.
-
-![Profit / Loss](docs/screenshots/09-profit-loss.png)
-
-### Marketplace
-
-| Open Market | Cart | Payment (Demo) |
-| --- | --- | --- |
-| ![Market](docs/screenshots/10-market.png) | ![Cart](docs/screenshots/11-cart.png) | ![Payment](docs/screenshots/12-payment.png) |
-
-### Admin Panel
-
-| Site Administration | Users | Crops |
-| --- | --- | --- |
-| ![Admin home](docs/screenshots/14-admin-home.png) | ![Admin users](docs/screenshots/13-admin-users.png) | ![Admin crops](docs/screenshots/17-admin-crops.png) |
-
-Editing a user — including AgroNity‑specific fields such as **Role** and **Is approved**:
-
-| Change user | Permissions & role |
-| --- | --- |
-| ![Admin user edit](docs/screenshots/15-admin-user-edit.png) | ![Admin user permissions](docs/screenshots/16-admin-user-permissions.png) |
+1. **Dataset:** crop recommendation dataset (~2,200 samples, 22 crops, 7 features).
+2. **Training & comparison:** Decision Tree, Naive Bayes, SVM, Logistic Regression, Random Forest, XGBoost.
+3. **Selected model:** XGBoost (highest accuracy) exported to `ml_model/xgboost.pkl`.
+4. **Serving:** Django API/view loads the model with `joblib` and returns a crop prediction for user inputs.
+5. **Companion repo:** [soil-based-crop-recommendation](https://github.com/akhilabodepudi/soil-based-crop-recommendation) (notebook + training/prediction scripts).
 
 ---
 
-## 🚀 Getting Started
-
-### Prerequisites
-
-- Python 3.11+
-- `pip` and `venv`
-
-### Installation
-
-```bash
-# 1. Clone the repository
-git clone https://github.com/akhilabodepudi/AgroNity.git
-cd AgroNity
-
-# 2. Create and activate a virtual environment
-python -m venv .venv
-source .venv/bin/activate        # macOS / Linux
-# .venv\Scripts\activate         # Windows
-
-# 3. Install dependencies
-pip install -r requirements.txt
-
-# 4. Apply database migrations
-python manage.py migrate
-
-# 5. Create an admin account
-python manage.py createsuperuser
-
-# 6. Run the development server
-python manage.py runserver
-```
-
-Then open:
-
-- App: <http://127.0.0.1:8000/>
-- Marketplace: <http://127.0.0.1:8000/market/>
-- Admin: <http://127.0.0.1:8000/admin/>
-
-> The crop recommendation model is loaded from `ml_model/xgboost.pkl` at runtime.
-
----
-
-## 🗂️ Project Structure
+## 🏗️ Architecture
 
 ```text
-agronity/
-├── core/                 # Django project settings, root URLs, WSGI/ASGI
-├── accounts/             # Custom User model, auth views (home, login, signup, logout)
-├── market/               # Marketplace, cart, checkout, recommendation, maps, learning, profit/loss
-├── ml_model/             # Trained XGBoost crop-recommendation model (xgboost.pkl)
-├── templates/            # Global + app templates (base.html, dashboard, subapps, market, accounts)
-├── static/               # Static assets (CSS/JS/img)
-├── media/                # User-uploaded files (crop images)
-├── docs/screenshots/     # README screenshots
-├── manage.py
-└── requirements.txt
-```
-
----
-
-## 👥 User Roles
-
-| Role | Capabilities |
-| --- | --- |
-| **Farmer** | Register/login, manage profile, list and manage crops, view orders *(requires admin approval)*. |
-| **Customer** | Register/login, browse crops, add to cart, and place orders *(auto‑approved)*. |
-| **Administrator** | Manage farmers, customers, crops, cart items, and orders from the admin panel *(requires approval)*. |
-
----
-
-## 🛣️ Roadmap
-
-- [ ] Expand the crop dataset (more regions, soil types, weather integration)
-- [ ] Leaf disease detection using image‑based ML
-- [ ] Fertilizer recommendation based on crop & soil data
-- [ ] Real payment gateway integration
-- [ ] Local language support and improved UI/UX
-- [ ] Native Android / iOS apps
-
----
-
-## 📚 References & Inspiration
-
-- Government of India agriculture portals (mKisan, Kisan Suvidha, AgriStack)
-- Digital farming platforms: OneSoil, Climate FieldView, CropX, Agricolus
-- Research on soil‑based crop recommendation using machine learning
-- YouTube channels & tutorials on organic and modern agricultural practices
-
----
-
-<p align="center"><em>AgroNity — uniting farmers, buyers, and knowledge into one ecosystem. 🌾</em></p>
+Browser (Bootstrap + Leaflet UI)
+        │
+        ▼
+Vercel (Django WSGI function + CDN static files)
+        │
+        ├── accounts/     → auth, roles, approval
+        ├── market/       → marketplace, cart, checkout, ML API, maps, learning, P/L
+        ├── ml_model/     → xgboost.pkl (inference)
+        └── templates/ + static/  → green AgroNity UI
+        │
+        ▼
+Neon PostgreSQL  ←── sessions, users, crops, cart, orders
