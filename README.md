@@ -220,7 +220,9 @@ Vercel (Django WSGI function + CDN static files)
         ▼
 Neon PostgreSQL  ←── sessions, users, crops, cart, orders
 
-## Copyright
+
+
+**## Copyright**
 
 Copyright © 2026 Akhila Bodepudi. All rights reserved.
 
