@@ -219,13 +219,13 @@ Vercel (Django WSGI function + CDN static files)
         │
         ▼
 Neon PostgreSQL  ←── sessions, users, crops, cart, orders
+```
 
 ---
 
-**## Copyright**
+## Copyright
 
 Copyright © 2026 Akhila Bodepudi. All rights reserved.
 
-This repository is provided for portfolio and demonstration purposes.
-No permission is granted to copy, modify, distribute, or commercially
-use the original source code without written permission.
+This repository is provided for portfolio and demonstration purposes.  
+No permission is granted to copy, modify, distribute, or commercially use the original source code without written permission.
